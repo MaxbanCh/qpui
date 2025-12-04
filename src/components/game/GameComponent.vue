@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import Player from '../player/Player.vue';
-import Buzzer from '../buzzer/Buzzer.vue';
+import Player from '../player/PlayerComponent.vue';
+import Buzzer from '../buzzer/BuzzerComponent.vue';
 
 const logged = ref<boolean>(false);
 const username = ref<string>('');
@@ -15,7 +15,6 @@ function handleJoinRoom(data: { username: string; roomCode: string }) {
 </script>
 
 <template>
-    <h1>Game Component</h1>
     <Player v-if="!logged" @joinRoom="handleJoinRoom"/>
     <Buzzer v-else :usernameProp="username" :roomCodeProp="roomCode"/>
 </template>

@@ -77,7 +77,8 @@ function setupWebSocket() {
         type: 'JOIN_BUZZER_ROOM',
         userId: username.value,
         username: username.value,
-        roomCode: roomCode.value
+        roomCode: roomCode.value,
+        isRejoining: true
       }));
     }
   };
@@ -90,19 +91,25 @@ function setupWebSocket() {
       case 'ROOM_CREATED':
         roomCode.value = data.room.code;
         isHost.value = true;
-        players.value = data.room.players.map((p: any) => ({
+        players.value = data.room.players.map((p: Player) => ({
           ...p,
           score: data.room.scores[p.id] || 0
         }));
+        localStorage.setItem('buzzerAdminRoom', roomCode.value);
+        localStorage.setItem('buzzerAdminUser', username.value);
         break;
         
       case 'ROOM_JOINED':
         roomCode.value = data.room.code;
-        players.value = data.room.players.map((p: any) => ({
+        players.value = data.room.players.map((p: Player) => ({
           ...p,
           score: data.room.scores[p.id] || 0
         }));
         isHost.value = data.room.host === username.value;
+        if (isHost.value) {
+          localStorage.setItem('buzzerAdminRoom', roomCode.value);
+          localStorage.setItem('buzzerAdminUser', username.value);
+        }
         break;
         
       case 'PLAYER_JOINED':
@@ -126,9 +133,6 @@ function setupWebSocket() {
         break;
       
       case 'BUZZER_LOCK':
-        if (data.message) {
-          alert(data.message);
-        }
         lockedBuzzer.value = data.locked;
         break;
         
@@ -144,7 +148,6 @@ function setupWebSocket() {
         break;
 
       case 'ERROR':
-        alert(data.message);
         break;
     }
   };
@@ -153,6 +156,16 @@ function setupWebSocket() {
 onMounted(() => {
   username.value = props.usernameProp;
   roomCode.value = props.roomCodeProp;
+  
+  // Check if admin was previously in a room
+  const storedAdminRoom = localStorage.getItem('buzzerAdminRoom');
+  const storedAdminUser = localStorage.getItem('buzzerAdminUser');
+  
+  if (storedAdminRoom && storedAdminUser === username.value) {
+    roomCode.value = storedAdminRoom;
+    isHost.value = true;
+  }
+  
   setupWebSocket();
 });
 
@@ -186,20 +199,65 @@ onUnmounted(() => {
         </li>
       </ul>
     </div>
-    <div class="buzzer-controls" v-if="!isHost">
+    <div class="buzzer-controls" style="position:relative;width:80vw;aspect-ratio: 1/1;" v-if="!isHost">
       <button 
         @click="pressBuzzer" 
         :disabled="lockedBuzzer || !!activeBuzzer"
-        :class="{ 'buzzer-active': activeBuzzer === username }">
-        Press Buzzer
+        :class="{ 'buzzer-active': activeBuzzer === username }"
+        style=" 
+        background-color: red; 
+        width: 100%;
+        height: 100%;
+        transform: translateY(-15px);
+        left:0;
+        border-radius:20%;
+        aspect-ratio: 1/1;
+        position:absolute;
+        border:none;">
+        BUZZ!!
       </button>
+      <div style="background-color: #500000;width:100%;height:100%;border-radius: 20%;"></div>
     </div>
     <div class="buzzer-status" v-if="!isHost">
       <p v-if="activeBuzzer">La main est à : {{ activeBuzzer }}</p>
       <p v-if="lockedBuzzer">Buzzer Bloqué</p>
+    </div>
+    <div class="buzzer-status" v-if="isHost">
+      <p v-if="activeBuzzer">La main est à : {{ activeBuzzer }}</p>
     </div>
     <div class="admin-panel" v-if="isHost">
       <button @click="resetBuzzer">Reset Buzzer</button>
     </div>
   </div>
 </template>
+
+<style scoped>
+.buzzer-component {
+  max-width: 1000px;
+  margin: 0 auto;
+  text-align: center;
+}
+.players-list {
+  margin-bottom: 20px;
+}
+.players-list ul {
+  list-style-type: none;
+  padding: 0;
+}
+.players-list li {
+  margin: 5px 0;
+}
+.buzzer-controls button {
+  padding: 10px 20px;
+  font-size: 16px;
+}
+
+.buzzer-active {
+  background-color: red;
+  color: white;
+  transform:translateY(0) !important;
+}
+.admin-panel {
+  margin-top: 20px;
+}
+</style>
